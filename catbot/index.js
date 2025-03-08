@@ -75,7 +75,7 @@
           let silent = args.find(arg => arg.name === "silent")?.value;
   
           if (!["best", "hot", "new", "rising", "top", "controversial"].includes(sort)) {
-            sort = "new";
+            let sort = "new";
             return;
           }
   
