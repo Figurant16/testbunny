@@ -1,0 +1,17 @@
+{
+    "name": "CatImages",
+    "description": "Sends a random cat image in Discord channels.",
+    "authors": [
+      {
+        "name": "YourName",
+        "id": "YourDiscordID"
+      }
+    ],
+    "main": "index.js",
+    "vendetta": {
+      "icon": "ic_reaction_smile",
+      "original": "vendetta.yourname.catimages/"
+    },
+    "hash": "replace_with_your_hash"
+  }
+  
