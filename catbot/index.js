@@ -71,12 +71,11 @@
       execute: async function (args, context) {
         try {
           let sortArg = args.find(arg => arg.name === "sort");
-          // Use r.storage.sortdefs as the default value, and fallback to "new" if it's not defined
-          let sort = sortArg && sortArg.value ? sortArg.value : (r.storage.sortdefs || "new");
+          let sort = sortArg && sortArg.value ? sortArg.value : (r.storage.sortdefs);
           let silent = args.find(arg => arg.name === "silent")?.value;
   
           if (!["best", "hot", "new", "rising", "top", "controversial"].includes(sort)) {
-            sendBotMessage(context.channel.id, "Invalid sorting type. Valid options are: `best`, `hot`, `new`, `rising`, `top`, `controversial`.", []);
+            sort = "new";
             return;
           }
   
