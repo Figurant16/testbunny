@@ -71,13 +71,8 @@
       execute: async function (args, context) {
         try {
           let sortArg = args.find(arg => arg.name === "sort");
-          let sort = sortArg && sortArg.value ? sortArg.value : (r.storage.sortdefs);
+          let sort = sortArg && sortArg.value ? sortArg.value : (r.storage.sortdefs || "new");
           let silent = args.find(arg => arg.name === "silent")?.value;
-  
-          if (!["best", "hot", "new", "rising", "top", "controversial"].includes(sort)) {
-            let sort = "new";
-            return;
-          }
   
           let subreddit = "cats";
           let response = await fetch(`https://www.reddit.com/r/${subreddit}/${sort}.json?limit=100`).then(res => res.json());
