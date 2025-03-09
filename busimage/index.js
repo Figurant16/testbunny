@@ -1,108 +1,142 @@
 (function(c, p, y, d, u, r, w, b) {
     "use strict";
 
-    const { ScrollView: v } = u.General,
-          { FormSection: f, FormRadioRow: _, FormSwitchRow: F, FormIcon: S } = u.Forms;
+    // Import necessary UI components
+    const { ScrollView } = u.General;
+    const { FormSection, FormRadioRow, FormSwitchRow, FormIcon } = u.Forms;
 
-    function R() {
-        return w.useProxy(r.storage),
-            React.createElement(v, null,
-                React.createElement(f, { title: "Misc Settings", titleStyleType: "no_border" }),
-                React.createElement(F, {
-                    label: "NSFW Warning",
-                    subLabel: "Warn when sending an NSFW image in a non NSFW channel.",
-                    leading: React.createElement(S, { source: b.getAssetIDByName("ic_warning_24px") }),
-                    value: r.storage.nsfwwarn,
-                    onValueChange: function(n) { return r.storage.nsfwwarn = n; }
-                }),
-                React.createElement(f, { title: "Default Sort", titleStyleType: "no_border" },
-                    Object.entries({ Best: "best", Hot: "hot", New: "new", Rising: "rising", Top: "top", Controversial: "controversial" })
-                        .map(function(n) {
-                            let [t, s] = n;
-                            return React.createElement(_, {
-                                label: t,
-                                selected: r.storage.sortdefs === s,
-                                onPress: function() { r.storage.sortdefs = s; }
-                            });
-                        })
+    function PluginSettings() {
+        w.useProxy(r.storage);
+
+        return React.createElement(ScrollView, null,
+            React.createElement(FormSection, { title: "Misc Settings", titleStyleType: "no_border" }),
+            React.createElement(FormSwitchRow, {
+                label: "NSFW Warning",
+                subLabel: "Warn when sending an NSFW image in a non NSFW channel.",
+                leading: React.createElement(FormIcon, { source: b.getAssetIDByName("ic_warning_24px") }),
+                value: r.storage.nsfwwarn,
+                onValueChange: (value) => r.storage.nsfwwarn = value
+            }),
+            React.createElement(FormSection, { title: "Default Sort", titleStyleType: "no_border" },
+                Object.entries({ Best: "best", Hot: "hot", New: "new", Rising: "rising", Top: "top", Controversial: "controversial" }).map(([label, value]) =>
+                    React.createElement(FormRadioRow, {
+                        label,
+                        selected: r.storage.sortdefs === value,
+                        onPress: () => r.storage.sortdefs = value
+                    })
                 )
-            );
+            )
+        );
     }
 
-    const g = d.findByProps("sendMessage", "receiveMessage"),
-          A = d.findByProps("getLastSelectedChannelId"),
-          N = d.findByProps("createBotMessage"),
-          $ = d.findByProps("BOT_AVATARS");
+    // Utility functions and API references
+    const messaging = d.findByProps("sendMessage", "receiveMessage");
+    const channelUtils = d.findByProps("getLastSelectedChannelId");
+    const messageCreator = d.findByProps("createBotMessage");
+    const botAvatars = d.findByProps("BOT_AVATARS");
 
-    function l(n, t, s) {
-        const a = n ?? A?.getChannelId?.(),
-              i = N.createBotMessage({ channelId: a, content: "", embeds: s });
-        i.author.username = "BusBot",
-        i.author.avatar = "BusBot",
-        $.BOT_AVATARS.BusBot = "https://example.com/bus-avatar.jpg";
-        typeof t == "string" ? i.content = t : Object.assign(i, t),
-        g.receiveMessage(a, i);
+    function sendBotMessage(channelId, content, embeds = []) {
+        const actualChannelId = channelId ?? channelUtils?.getChannelId?.();
+        const botMessage = messageCreator.createBotMessage({ channelId: actualChannelId, content: "", embeds });
+        
+        botMessage.author.username = "Astolfo";
+        botMessage.author.avatar = "Astolfo";
+        botAvatars.BOT_AVATARS.Astolfo = "https://i.pinimg.com/736x/50/77/1f/50771f45b1c015cfbb8b0853ba7b8521.jpg";
+        
+        if (typeof content === "string") {
+            botMessage.content = content;
+        } else {
+            Object.assign(botMessage, content);
+        }
+        
+        messaging.receiveMessage(actualChannelId, botMessage);
     }
 
-    let m = [];
-    m.push(p.registerCommand({
-        name: "bus",
-        displayName: "bus",
-        description: "Get an image of a bus",
-        displayDescription: "Get an image of a bus",
+    let commands = [];
+
+    commands.push(p.registerCommand({
+        name: "femboy",
+        displayName: "femboy",
+        description: "Get an image of a femboy",
+        displayDescription: "Get an image of a femboy",
         options: [
-            { name: "sort", displayName: "sort", description: "Changes the way reddit sorts.", displayDescription: "Changes the way reddit sorts", required: !1, type: 3 },
-            { name: "silent", displayName: "silent", description: "Makes it so only you can see the message.", displayDescription: "Makes it so only you can see the message.", required: !1, type: 5 }
+            { name: "nsfw", displayName: "nsfw", description: "Use NSFW subreddit", required: false, type: 5 },
+            { name: "sort", displayName: "sort", description: "Reddit sorting method", required: false, type: 3 },
+            { name: "silent", displayName: "silent", description: "Only you can see the message", required: false, type: 5 }
         ],
         applicationId: "-1",
         inputType: 1,
         type: 1,
-        execute: async function(n, t) {
+        execute: async function(args, context) {
             try {
-                let a = n.find(function(o) { return o.name === "sort"; })?.value,
-                    i = n.find(function(o) { return o.name === "silent"; })?.value;
-                if (typeof a === "undefined" && (a = r.storage.sortdefs), !["best", "hot", "new", "rising", "top", "controversial"].includes(a)) {
-                    l(t.channel.id, "Incorrect sorting type. Valid options are\nbest, hot, new, rising, top, controversial.", []);
+                let nsfw = args.find(o => o.name === "nsfw")?.value;
+                let sort = args.find(o => o.name === "sort")?.value ?? r.storage.sortdefs;
+                let silent = args.find(o => o.name === "silent")?.value ?? true;
+
+                if (!["best", "hot", "new", "rising", "top", "controversial"].includes(sort)) {
+                    sendBotMessage(context.channel.id, "Invalid sorting type. Valid options: best, hot, new, rising, top, controversial.");
                     return;
                 }
-                let e = await fetch(`https://www.reddit.com/r/bus/${a}.json?limit=100`).then(function(o) { return o.json(); });
-                e = e.data?.children?.[Math.floor(Math.random() * e.data?.children?.length)]?.data;
-                let h = await fetch(`https://www.reddit.com/u/${e?.author}/about.json`).then(function(o) { return o.json(); });
-                i ?? !0 ? l(t.channel.id, "", [{
-                    type: "rich",
-                    title: e?.title,
-                    url: `https://reddit.com${e?.permalink}`,
-                    author: {
-                        name: `u/${e?.author} • r/${e?.subreddit}`,
-                        proxy_icon_url: h?.data.icon_img.split("?")[0],
-                        icon_url: h?.data.icon_img.split("?")[0]
-                    },
-                    image: {
-                        proxy_url: e?.url_overridden_by_dest.replace(/.gifv$/g, ".gif") ?? e?.url.replace(/.gifv$/g, ".gif"),
-                        url: e?.url_overridden_by_dest?.replace(/.gifv$/g, ".gif") ?? e?.url?.replace(/.gifv$/g, ".gif"),
-                        width: e?.preview?.images?.[0]?.source?.width,
-                        height: e?.preview?.images?.[0]?.source?.height
-                    },
-                    color: "0xf4b8e4"
-                }]) : g.sendMessage(t.channel.id, { content: e?.url_overridden_by_dest ?? e?.url });
-            } catch (s) {
-                y.logger.log(s),
-                l(t.channel.id, "ERROR !!!!!!!!!!!! 😥😥😥 Check debug logs!! 🥹🥹🥹", []);
+
+                let subreddit = bus;
+                let response = await fetch(`https://www.reddit.com/r/${subreddit}/${sort}.json?limit=100`).then(res => res.json());
+
+                if (!context.channel.nsfw_ && nsfw && r.storage.nsfwwarn && silent) {
+                    sendBotMessage(context.channel.id, "This channel is not marked as NSFW.\n(You can disable this check in plugin settings)");
+                    return;
+                }
+
+                let post = response.data?.children?.[Math.floor(Math.random() * response.data.children.length)]?.data;
+                let authorData = await fetch(`https://www.reddit.com/u/${post?.author}/about.json`).then(res => res.json());
+
+                if (silent) {
+                    sendBotMessage(context.channel.id, "", [{
+                        type: "rich",
+                        title: post?.title,
+                        url: `https://reddit.com${post?.permalink}`,
+                        author: {
+                            name: `u/${post?.author} • r/${post?.subreddit}`,
+                            proxy_icon_url: authorData?.data.icon_img.split("?")[0],
+                            icon_url: authorData?.data.icon_img.split("?")[0]
+                        },
+                        image: {
+                            proxy_url: post?.url_overridden_by_dest.replace(/.gifv$/g, ".gif") ?? post?.url.replace(/.gifv$/g, ".gif"),
+                            url: post?.url_overridden_by_dest?.replace(/.gifv$/g, ".gif") ?? post?.url?.replace(/.gifv$/g, ".gif"),
+                            width: post?.preview?.images?.[0]?.source?.width,
+                            height: post?.preview?.images?.[0]?.source?.height
+                        },
+                        color: "0xf4b8e4"
+                    }]);
+                } else {
+                    messaging.sendMessage(context.channel.id, { content: post?.url_overridden_by_dest ?? post?.url });
+                }
+            } catch (error) {
+                y.logger.log(error);
+                sendBotMessage(context.channel.id, "ERROR! Check debug logs!");
             }
         }
     }));
 
-    const M = R,
-          B = function() {
-              r.storage.nsfwwarn ??= !0,
-              r.storage.sortdefs ??= "new";
-          },
-          j = function() {
-              for (const n of m) n();
-          };
+    function onLoad() {
+        r.storage.nsfwwarn ??= true;
+        r.storage.sortdefs ??= "new";
+    }
 
-    return c.onLoad = B,
-           c.onUnload = j,
-           c.settings = M,
-           c;
-})({}, vendetta.commands, vendetta, vendetta.metro, vendetta.ui.components, vendetta.plugin, vendetta.storage, vendetta.ui.assets);
+    function onUnload() {
+        for (const unregister of commands) unregister();
+    }
+
+    c.onLoad = onLoad;
+    c.onUnload = onUnload;
+    c.settings = PluginSettings;
+
+})(
+    {},
+    vendetta.commands,
+    vendetta,
+    vendetta.metro,
+    vendetta.ui.components,
+    vendetta.plugin,
+    vendetta.storage,
+    vendetta.ui.assets
+);
