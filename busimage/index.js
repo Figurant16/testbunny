@@ -1,75 +1,108 @@
-(function (c, p, y, d, u, r, w, b) {
+(function(c, p, y, d, u, r, w, b) {
     "use strict";
 
-    // Références aux modules Discord
-    const messagesModule = d.findByProps("sendMessage", "receiveMessage");
+    const { ScrollView: v } = u.General,
+          { FormSection: f, FormRadioRow: _, FormSwitchRow: F, FormIcon: S } = u.Forms;
 
-    // Informations d'identification Reddit
-    const clientId = 'YOUR_CLIENT_ID';
-    const clientSecret = 'YOUR_CLIENT_SECRET';
-    const userAgent = 'YOUR_USER_AGENT';
-
-    // Fonction pour obtenir un token d'accès Reddit
-    async function getRedditAccessToken() {
-      const response = await fetch('https://www.reddit.com/api/v1/access_token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-        },
-        body: 'grant_type=client_credentials',
-      });
-
-      const data = await response.json();
-      return data.access_token;
+    function R() {
+        return w.useProxy(r.storage),
+            React.createElement(v, null,
+                React.createElement(f, { title: "Misc Settings", titleStyleType: "no_border" }),
+                React.createElement(F, {
+                    label: "NSFW Warning",
+                    subLabel: "Warn when sending an NSFW image in a non NSFW channel.",
+                    leading: React.createElement(S, { source: b.getAssetIDByName("ic_warning_24px") }),
+                    value: r.storage.nsfwwarn,
+                    onValueChange: function(n) { return r.storage.nsfwwarn = n; }
+                }),
+                React.createElement(f, { title: "Default Sort", titleStyleType: "no_border" },
+                    Object.entries({ Best: "best", Hot: "hot", New: "new", Rising: "rising", Top: "top", Controversial: "controversial" })
+                        .map(function(n) {
+                            let [t, s] = n;
+                            return React.createElement(_, {
+                                label: t,
+                                selected: r.storage.sortdefs === s,
+                                onPress: function() { r.storage.sortdefs = s; }
+                            });
+                        })
+                )
+            );
     }
 
-    // Fonction pour envoyer une image de bus
-    async function sendBusImage(channelId) {
-      try {
-        const accessToken = await getRedditAccessToken();
-        const response = await fetch('https://www.reddit.com/r/buses/hot.json?limit=10', {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'User-Agent': userAgent,
-          },
-        });
+    const g = d.findByProps("sendMessage", "receiveMessage"),
+          A = d.findByProps("getLastSelectedChannelId"),
+          N = d.findByProps("createBotMessage"),
+          $ = d.findByProps("BOT_AVATARS");
 
-        const data = await response.json();
-        const posts = data.data.children;
-        const imagePost = posts.find(post => post.data.url.endsWith('.jpg') || post.data.url.endsWith('.png'));
+    function l(n, t, s) {
+        const a = n ?? A?.getChannelId?.(),
+              i = N.createBotMessage({ channelId: a, content: "", embeds: s });
+        i.author.username = "BusBot",
+        i.author.avatar = "BusBot",
+        $.BOT_AVATARS.BusBot = "https://example.com/bus-avatar.jpg";
+        typeof t == "string" ? i.content = t : Object.assign(i, t),
+        g.receiveMessage(a, i);
+    }
 
-        if (!imagePost) {
-          messagesModule.sendMessage(channelId, { content: "Could not fetch a bus image. 🚌" });
-          return;
+    let m = [];
+    m.push(p.registerCommand({
+        name: "bus",
+        displayName: "bus",
+        description: "Get an image of a bus",
+        displayDescription: "Get an image of a bus",
+        options: [
+            { name: "sort", displayName: "sort", description: "Changes the way reddit sorts.", displayDescription: "Changes the way reddit sorts", required: !1, type: 3 },
+            { name: "silent", displayName: "silent", description: "Makes it so only you can see the message.", displayDescription: "Makes it so only you can see the message.", required: !1, type: 5 }
+        ],
+        applicationId: "-1",
+        inputType: 1,
+        type: 1,
+        execute: async function(n, t) {
+            try {
+                let a = n.find(function(o) { return o.name === "sort"; })?.value,
+                    i = n.find(function(o) { return o.name === "silent"; })?.value;
+                if (typeof a === "undefined" && (a = r.storage.sortdefs), !["best", "hot", "new", "rising", "top", "controversial"].includes(a)) {
+                    l(t.channel.id, "Incorrect sorting type. Valid options are\nbest, hot, new, rising, top, controversial.", []);
+                    return;
+                }
+                let e = await fetch(`https://www.reddit.com/r/bus/${a}.json?limit=100`).then(function(o) { return o.json(); });
+                e = e.data?.children?.[Math.floor(Math.random() * e.data?.children?.length)]?.data;
+                let h = await fetch(`https://www.reddit.com/u/${e?.author}/about.json`).then(function(o) { return o.json(); });
+                i ?? !0 ? l(t.channel.id, "", [{
+                    type: "rich",
+                    title: e?.title,
+                    url: `https://reddit.com${e?.permalink}`,
+                    author: {
+                        name: `u/${e?.author} • r/${e?.subreddit}`,
+                        proxy_icon_url: h?.data.icon_img.split("?")[0],
+                        icon_url: h?.data.icon_img.split("?")[0]
+                    },
+                    image: {
+                        proxy_url: e?.url_overridden_by_dest.replace(/.gifv$/g, ".gif") ?? e?.url.replace(/.gifv$/g, ".gif"),
+                        url: e?.url_overridden_by_dest?.replace(/.gifv$/g, ".gif") ?? e?.url?.replace(/.gifv$/g, ".gif"),
+                        width: e?.preview?.images?.[0]?.source?.width,
+                        height: e?.preview?.images?.[0]?.source?.height
+                    },
+                    color: "0xf4b8e4"
+                }]) : g.sendMessage(t.channel.id, { content: e?.url_overridden_by_dest ?? e?.url });
+            } catch (s) {
+                y.logger.log(s),
+                l(t.channel.id, "ERROR !!!!!!!!!!!! 😥😥😥 Check debug logs!! 🥹🥹🥹", []);
+            }
         }
-
-        messagesModule.sendMessage(channelId, { content: imagePost.data.url });
-      } catch (error) {
-        y.logger.log(error);
-        messagesModule.sendMessage(channelId, { content: "An error occurred while fetching the bus image. 🚌" });
-      }
-    }
-
-    // Liste des commandes
-    let commands = [];
-
-    commands.push(p.registerCommand({
-      name: "bus",
-      displayName: "bus",
-      description: "Get an image of a bus",
-      execute: async function (_, context) {
-        sendBusImage(context.channel.id);
-      }
     }));
 
-    // Initialisation et destruction du plugin
-    function onLoad() {}
-    function onUnload() {
-      for (const unregister of commands) unregister();
-    }
+    const M = R,
+          B = function() {
+              r.storage.nsfwwarn ??= !0,
+              r.storage.sortdefs ??= "new";
+          },
+          j = function() {
+              for (const n of m) n();
+          };
 
-    c.onLoad = onLoad;
-    c.onUnload = onUnload;
-
-  })({}, vendetta.commands, vendetta, vendetta.metro, vendetta.ui.components, vendetta.plugin, vendetta.storage, vendetta.ui.assets);
+    return c.onLoad = B,
+           c.onUnload = j,
+           c.settings = M,
+           c;
+})({}, vendetta.commands, vendetta, vendetta.metro, vendetta.ui.components, vendetta.plugin, vendetta.storage, vendetta.ui.assets);
