@@ -1,11 +1,16 @@
 {
-    "name": "Bus Image Plugin",
-    "description": "Un plugin qui affiche une image aléatoire de bus avec la commande /bus.",
-    "author": "TonNom",
-    "version": "1.0.0",
+    "name": "BusImages",
+    "description": "Sends a random bus image in Discord channels.",
+    "authors": [
+        {
+            "name": "YourName",
+            "id": "YourDiscordID"
+        }
+    ],
+    "main": "index.js",
     "vendetta": {
-      "type": "plugin",
-      "entry": "index.js"
-    }
-  }
-  
+        "icon": "ic_reaction_bus",
+        "original": "vendetta.yourname.busimages/"
+    },
+    "hash": "replace_with_your_hash"
+}
