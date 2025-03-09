@@ -35,13 +35,12 @@
     let commands = [];
 
     commands.push(p.registerCommand({
-        name: "femboy",
-        displayName: "femboy",
-        description: "Get an image of a femboy",
-        displayDescription: "Get an image of a femboy",
+        name: "bus",
+        displayName: "bus",
+        description: "Get an image of a bus",
+        displayDescription: "Get an image of a bus",
         options: [
-            { name: "nsfw", displayName: "nsfw", description: "Use NSFW subreddit", required: false, type: 5 },
-            { name: "sort", displayName: "sort", description: "Reddit sorting method", required: false, type: 3 }
+            { name: "sort", displayName: "sort", description: "Reddit sorting method", required: true, type: 3 }
         ],
         applicationId: "-1",
         inputType: 1,
