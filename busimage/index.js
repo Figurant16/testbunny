@@ -1,7 +1,6 @@
 (function(c, p, y, d, u, r, w, b) {
     "use strict";
 
-    // Import necessary UI components
     const { ScrollView } = u.General;
     const { FormSection, FormRadioRow, FormSwitchRow, FormIcon } = u.Forms;
 
@@ -29,28 +28,9 @@
         );
     }
 
-    // Utility functions and API references
     const messaging = d.findByProps("sendMessage", "receiveMessage");
     const channelUtils = d.findByProps("getLastSelectedChannelId");
     const messageCreator = d.findByProps("createBotMessage");
-    const botAvatars = d.findByProps("BOT_AVATARS");
-
-    function sendBotMessage(channelId, content, embeds = []) {
-        const actualChannelId = channelId ?? channelUtils?.getChannelId?.();
-        const botMessage = messageCreator.createBotMessage({ channelId: actualChannelId, content: "", embeds });
-        
-        botMessage.author.username = "Astolfo";
-        botMessage.author.avatar = "Astolfo";
-        botAvatars.BOT_AVATARS.Astolfo = "https://i.pinimg.com/736x/50/77/1f/50771f45b1c015cfbb8b0853ba7b8521.jpg";
-        
-        if (typeof content === "string") {
-            botMessage.content = content;
-        } else {
-            Object.assign(botMessage, content);
-        }
-        
-        messaging.receiveMessage(actualChannelId, botMessage);
-    }
 
     let commands = [];
 
@@ -61,8 +41,7 @@
         displayDescription: "Get an image of a femboy",
         options: [
             { name: "nsfw", displayName: "nsfw", description: "Use NSFW subreddit", required: false, type: 5 },
-            { name: "sort", displayName: "sort", description: "Reddit sorting method", required: false, type: 3 },
-            { name: "silent", displayName: "silent", description: "Only you can see the message", required: false, type: 5 }
+            { name: "sort", displayName: "sort", description: "Reddit sorting method", required: false, type: 3 }
         ],
         applicationId: "-1",
         inputType: 1,
@@ -71,48 +50,25 @@
             try {
                 let nsfw = args.find(o => o.name === "nsfw")?.value;
                 let sort = args.find(o => o.name === "sort")?.value ?? r.storage.sortdefs;
-                let silent = args.find(o => o.name === "silent")?.value ?? true;
 
                 if (!["best", "hot", "new", "rising", "top", "controversial"].includes(sort)) {
-                    sendBotMessage(context.channel.id, "Invalid sorting type. Valid options: best, hot, new, rising, top, controversial.");
+                    messaging.sendMessage(context.channel.id, { content: "Invalid sorting type. Valid options: best, hot, new, rising, top, controversial." });
                     return;
                 }
 
-                let subreddit = bus;
+                let subreddit = nsfw ? "femboys" : "femboy";
                 let response = await fetch(`https://www.reddit.com/r/${subreddit}/${sort}.json?limit=100`).then(res => res.json());
-
-                if (!context.channel.nsfw_ && nsfw && r.storage.nsfwwarn && silent) {
-                    sendBotMessage(context.channel.id, "This channel is not marked as NSFW.\n(You can disable this check in plugin settings)");
-                    return;
-                }
-
                 let post = response.data?.children?.[Math.floor(Math.random() * response.data.children.length)]?.data;
-                let authorData = await fetch(`https://www.reddit.com/u/${post?.author}/about.json`).then(res => res.json());
-
-                if (silent) {
-                    sendBotMessage(context.channel.id, "", [{
-                        type: "rich",
-                        title: post?.title,
-                        url: `https://reddit.com${post?.permalink}`,
-                        author: {
-                            name: `u/${post?.author} • r/${post?.subreddit}`,
-                            proxy_icon_url: authorData?.data.icon_img.split("?")[0],
-                            icon_url: authorData?.data.icon_img.split("?")[0]
-                        },
-                        image: {
-                            proxy_url: post?.url_overridden_by_dest.replace(/.gifv$/g, ".gif") ?? post?.url.replace(/.gifv$/g, ".gif"),
-                            url: post?.url_overridden_by_dest?.replace(/.gifv$/g, ".gif") ?? post?.url?.replace(/.gifv$/g, ".gif"),
-                            width: post?.preview?.images?.[0]?.source?.width,
-                            height: post?.preview?.images?.[0]?.source?.height
-                        },
-                        color: "0xf4b8e4"
-                    }]);
+                let imageUrl = post?.url_overridden_by_dest?.replace(/.gifv$/g, ".gif") ?? post?.url?.replace(/.gifv$/g, ".gif");
+                
+                if (imageUrl) {
+                    messaging.sendMessage(context.channel.id, { content: imageUrl });
                 } else {
-                    messaging.sendMessage(context.channel.id, { content: post?.url_overridden_by_dest ?? post?.url });
+                    messaging.sendMessage(context.channel.id, { content: "No valid image found." });
                 }
             } catch (error) {
                 y.logger.log(error);
-                sendBotMessage(context.channel.id, "ERROR! Check debug logs!");
+                messaging.sendMessage(context.channel.id, { content: "ERROR! Check debug logs!" });
             }
         }
     }));
