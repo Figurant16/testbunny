@@ -1,0 +1,11 @@
+{
+    "name": "Bus Image Plugin",
+    "description": "Un plugin qui affiche une image aléatoire de bus avec la commande /bus.",
+    "author": "TonNom",
+    "version": "1.0.0",
+    "vendetta": {
+      "type": "plugin",
+      "entry": "index.js"
+    }
+  }
+  
