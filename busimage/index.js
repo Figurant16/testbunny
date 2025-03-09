@@ -55,8 +55,7 @@
                     return;
                 }
 
-                let subreddit = bus;
-                let response = await fetch(`https://www.reddit.com/r/${subreddit}/${sort}.json?limit=100`).then(res => res.json());
+                let response = await fetch(`https://www.reddit.com/r/bus/${sort}.json?limit=100`).then(res => res.json());
                 let post = response.data?.children?.[Math.floor(Math.random() * response.data.children.length)]?.data;
                 let imageUrl = post?.url_overridden_by_dest?.replace(/.gifv$/g, ".gif") ?? post?.url?.replace(/.gifv$/g, ".gif");
                 
